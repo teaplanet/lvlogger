@@ -1,7 +1,6 @@
 package log
 
 import (
-	"log"
 	"os"
 	"strings"
 
@@ -11,11 +10,10 @@ import (
 
 const (
 	LVLOGGER_ENVIRONMENT = "LVLOGGER_ENV"
-	GCP_PROJECT          = "GCP_PROJECT"
-	FUNCTION_TARGET      = "FUNCTION_TARGET"
 
 	ModeProduction  = "Prod"
 	ModeDevelopment = "Dev"
+	ModeGCP         = "GCP"
 )
 
 var (
@@ -41,37 +39,15 @@ var (
 )
 
 func NewLogger(options ...zap.Option) *zap.Logger {
-	gcpProject := os.Getenv(GCP_PROJECT)
-	if gcpProject != "" {
-		log.Printf("GCP Project: %s", gcpProject)
-		log.Print("GCP用のLoggerを生成します。")
-		return NewLoggerGCP(options...)
-	}
-
-	funcTarget := os.Getenv(FUNCTION_TARGET)
-	if funcTarget != "" {
-		log.Printf("Function: %s", funcTarget)
-		log.Print("GCP用のLoggerを生成します。")
-		return NewLoggerGCP(options...)
-	}
-
-	log.Print("標準のLoggerを生成します。")
-	return NewLoggerDefault(options...)
-}
-
-func NewLoggerGCP(options ...zap.Option) *zap.Logger {
-	logger, _ := zapdriver.NewProductionWithCore(
-		zapdriver.WrapCore(zapdriver.ReportAllErrors(true)), options...)
-	return logger
-}
-
-func NewLoggerDefault(options ...zap.Option) *zap.Logger {
 	var logger *zap.Logger
 	switch Mode {
 	case ModeDevelopment:
 		logger, _ = zap.NewDevelopment(options...)
 	case ModeProduction:
 		logger, _ = zap.NewProduction(options...)
+	case ModeGCP:
+		logger, _ = zapdriver.NewProductionWithCore(
+			zapdriver.WrapCore(zapdriver.ReportAllErrors(true)), options...)
 	default:
 		panic("Mode is empty")
 	}
@@ -82,9 +58,17 @@ func SetLogger(logger *zap.Logger)      { defaultLogger = logger }
 func SetSugar(sugar *zap.SugaredLogger) { defaultSugar = sugar }
 
 func initMode() string {
-	env := os.Getenv(LVLOGGER_ENVIRONMENT)
-	if strings.ToLower(env) == "p" {
-		return ModeProduction
+	env := strings.ToLower(os.Getenv(LVLOGGER_ENVIRONMENT))
+	if env == "" {
+		return ModeDevelopment
 	}
-	return ModeDevelopment
+
+	switch env[0:1] {
+	case "p":
+		return ModeProduction
+	case "g":
+		return ModeGCP
+	default:
+		return ModeDevelopment
+	}
 }
