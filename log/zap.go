@@ -12,6 +12,7 @@ import (
 const (
 	LVLOGGER_ENVIRONMENT = "LVLOGGER_ENV"
 	GCP_PROJECT          = "GCP_PROJECT"
+	FUNCTION_TARGET      = "FUNCTION_TARGET"
 
 	ModeProduction  = "Prod"
 	ModeDevelopment = "Dev"
@@ -46,6 +47,14 @@ func NewLogger(options ...zap.Option) *zap.Logger {
 		log.Print("GCP用のLoggerを生成します。")
 		return NewLoggerGCP(options...)
 	}
+
+	funcTarget := os.Getenv(FUNCTION_TARGET)
+	if funcTarget != "" {
+		log.Printf("Function: %s", funcTarget)
+		log.Print("GCP用のLoggerを生成します。")
+		return NewLoggerGCP(options...)
+	}
+
 	log.Print("標準のLoggerを生成します。")
 	return NewLoggerDefault(options...)
 }
