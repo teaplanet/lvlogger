@@ -1,6 +1,7 @@
 package log
 
 import (
+	"log"
 	"os"
 	"strings"
 
@@ -39,9 +40,13 @@ var (
 )
 
 func NewLogger(options ...zap.Option) *zap.Logger {
-	if os.Getenv(GCP_PROJECT) != "" {
+	gcpProject := os.Getenv(GCP_PROJECT)
+	if gcpProject != "" {
+		log.Printf("GCP Project: %s", gcpProject)
+		log.Print("GCP用のLoggerを生成します。")
 		return NewLoggerGCP(options...)
 	}
+	log.Print("標準のLoggerを生成します。")
 	return NewLoggerDefault(options...)
 }
 
