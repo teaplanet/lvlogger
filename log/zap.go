@@ -4,11 +4,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/blendle/zapdriver"
 	"go.uber.org/zap"
 )
 
 const (
 	LVLOGGER_ENVIRONMENT = "LVLOGGER_ENV"
+	GCP_PROJECT          = "GCP_PROJECT"
 
 	ModeProduction  = "Prod"
 	ModeDevelopment = "Dev"
@@ -37,6 +39,19 @@ var (
 )
 
 func NewLogger(options ...zap.Option) *zap.Logger {
+	if os.Getenv(GCP_PROJECT) != "" {
+		return NewLoggerGCP(options...)
+	}
+	return NewLoggerDefault(options...)
+}
+
+func NewLoggerGCP(options ...zap.Option) *zap.Logger {
+	logger, _ := zapdriver.NewProductionWithCore(
+		zapdriver.WrapCore(zapdriver.ReportAllErrors(true)), options...)
+	return logger
+}
+
+func NewLoggerDefault(options ...zap.Option) *zap.Logger {
 	var logger *zap.Logger
 	switch Mode {
 	case ModeDevelopment:
