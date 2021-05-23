@@ -54,8 +54,35 @@ func NewLogger(options ...zap.Option) *zap.Logger {
 	return logger
 }
 
-func SetLogger(logger *zap.Logger)      { defaultLogger = logger }
-func SetSugar(sugar *zap.SugaredLogger) { defaultSugar = sugar }
+func SetLogger(logger *zap.Logger) {
+	updateLoggerFuncs(logger)
+}
+
+func SetLevel(level zap.AtomicLevel) {
+	var conf zap.Config
+	switch Mode {
+	case ModeDevelopment:
+		conf = zap.NewDevelopmentConfig()
+	case ModeProduction:
+		conf = zap.NewProductionConfig()
+	default:
+		panic("Mode is empty")
+	}
+	conf.Level = level
+	err := RebuildLogger(conf)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func RebuildLogger(conf zap.Config, opts ...zap.Option) error {
+	logger, err := conf.Build(opts...)
+	if err != nil {
+		return err
+	}
+	updateLoggerFuncs(logger)
+	return nil
+}
 
 func initMode() string {
 	env := strings.ToLower(os.Getenv(LVLOGGER_ENVIRONMENT))
@@ -71,4 +98,24 @@ func initMode() string {
 	default:
 		return ModeDevelopment
 	}
+}
+
+func updateLoggerFuncs(logger *zap.Logger) {
+	defaultLogger = logger
+	defaultSugar = defaultLogger.Sugar()
+	Debug = defaultSugar.Debug
+	Debugf = defaultSugar.Debugf
+	Debugw = defaultSugar.Debugw
+	Warn = defaultSugar.Warn
+	Warnf = defaultSugar.Warnf
+	Warnw = defaultSugar.Warnw
+	Info = defaultSugar.Info
+	Infof = defaultSugar.Infof
+	Infow = defaultSugar.Infow
+	Error = defaultSugar.Error
+	Errorf = defaultSugar.Errorf
+	Errorw = defaultSugar.Errorw
+	Fatal = defaultSugar.Fatal
+	Fatalf = defaultSugar.Fatalf
+	Fatalw = defaultSugar.Fatalw
 }
